@@ -2,9 +2,11 @@
 irrlicht RTS/RTT game
 
 irrlicht real time strategy game
+
 Work in progress!
 
 Working on camera control now
+
 video demo: https://www.youtube.com/watch?v=PiPJfCxEOAA
 
 me: Alexandre Gurchumelia
