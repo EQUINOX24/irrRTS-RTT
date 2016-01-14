@@ -1,6 +1,10 @@
 # irrRTS-RTT
 irrlicht RTS/RTT game
 
-work in progress
+irrlicht real time strategy game
+Work in progress!
 
-working on camera control
+Working on camera control now
+
+me: Alexandre Gurchumelia
+my mail: insanewarlock666@gmail.com
