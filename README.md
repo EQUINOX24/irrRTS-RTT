@@ -9,6 +9,6 @@ Working on camera control now
 
 video demo: https://www.youtube.com/watch?v=PiPJfCxEOAA
 
-me: Alexandre Gurchumelia
-
 my email: insanewarlock666@gmail.com
+
+me: Alexandre Gurchumelia
