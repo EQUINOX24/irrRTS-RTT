@@ -3,16 +3,14 @@ irrlicht RTS/RTT game
 
 irrlicht real time strategy/tactics game
 
-needs to be compiled
-
 Work in progress!
 
-Working on camera control now
+camera control finished
 
-Use WASD to move around and use mouse right click and hold for rotation
+Use WASD to move around, simultaneous right and left click on mouse for rotation and scroll wheel for chanigng height
 
-video demo: https://www.youtube.com/watch?v=PiPJfCxEOAA
+video demo: https://www.youtube.com/watch?v=X7z0bJWDPw8
 
 my email: insanewarlock666@gmail.com
 
-me: Alexandre Gurchumelia
+my full name: Alexandre Gurchumelia
