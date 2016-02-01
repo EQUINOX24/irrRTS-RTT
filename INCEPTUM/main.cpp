@@ -50,7 +50,7 @@ int main()
 		terrain->setScale(core::vector3df(2.0f, 1.0f, 2.0f));
 		terrain->setPosition(core::vector3df(0, 0, 0));
 		terrain->setMaterialFlag(video::EMF_LIGHTING, false);
-		terrain->setMaterialTexture(0, driver->getTexture("./media/terrainTexture2.bmp"));
+		terrain->setMaterialTexture(0, driver->getTexture("./media/terrainTexture2.jpg"));
 	}
 	// Box // ==================================================================
 	scene::ISceneNode* box = smgr->addCubeSceneNode();
