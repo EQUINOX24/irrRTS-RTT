@@ -18,12 +18,21 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="irrRTSAction.cpp">
+    <ClCompile Include="inceptumAction.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="inceptumUnit.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="irrRTSAction.h">
+    <ClInclude Include="inceptumAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inceptumUnit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inceptumEnum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

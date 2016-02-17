@@ -73,11 +73,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="irrRTSAction.cpp" />
+    <ClCompile Include="inceptumAction.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="inceptumUnit.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="irrRTSAction.h" />
+    <ClInclude Include="inceptumAction.h" />
+    <ClInclude Include="inceptumEnum.h" />
+    <ClInclude Include="inceptumUnit.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

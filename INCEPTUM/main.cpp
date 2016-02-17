@@ -1,6 +1,6 @@
 #include <Irrlicht.h>
-#include <iostream>
-#include "irrRTSAction.h"
+#include "inceptumAction.h"
+#include "inceptumEnum.h"
 
 using namespace irr;
 
@@ -19,8 +19,6 @@ int main()
 	// Create device // =======================================================
 	IrrlichtDevice *device; //1366, 768 //1024, 600
 	int FullScreen = 1;
-	//std::cout << "FullScreen = ";
-	//std::cin >> FullScreen;
 	if (FullScreen == 1)
 	{
 		device = createDevice(video::EDT_DIRECT3D9, deskRes, 32,
@@ -28,7 +26,7 @@ int main()
 	}
 	else
 	{
-		device = createDevice(video::EDT_DIRECT3D9, core::dimension2d<u32>(1280, 720), 32,
+		device = createDevice(video::EDT_DIRECT3D9, core::dimension2d<u32>(800, 600), 32,
 		false, false, true, &receiver);
 	}
 
@@ -39,74 +37,69 @@ int main()
 
 	// Disable mip maps // =====================================================
 	//driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+	
 	// Image // ================================================================
 	video::ITexture* controlsPic = driver->getTexture("./media/Controls.png");
 	video::ITexture* irrlichtLogo = driver->getTexture("./media/irrlichtlogo2.png");
 
 	// Terrain // ==============================================================
-	scene::ITerrainSceneNode* terrain = smgr->addTerrainSceneNode("./media/heightmap3.jpg");
+	scene::ITerrainSceneNode* terrain = smgr->addTerrainSceneNode("./media/heightmap3.jpg", 0, -1,
+		core::vector3df(0, 0, 0), core::vector3df(0, 0, 0), core::vector3df(1, 1, 1));
 	if (terrain)
 	{
-		terrain->setScale(core::vector3df(2.0f, 1.0f, 2.0f));
-		terrain->setPosition(core::vector3df(0, 0, 0));
+		terrain->setID(NotPickable);
+		terrain->setScale(core::vector3df(1.0f, 0.5f, 1.0f));
+		//terrain->setPosition(core::vector3df(0, 0, 0));
 		terrain->setMaterialFlag(video::EMF_LIGHTING, false);
 		terrain->setMaterialTexture(0, driver->getTexture("./media/terrainTexture2.jpg"));
 	}
+
 	// Box // ==================================================================
 	scene::ISceneNode* box = smgr->addCubeSceneNode();
 	box->setMaterialTexture(0, driver->getTexture("./media/redPixel.bmp"));
-	box->setMaterialFlag(video::EMF_LIGHTING, false);
-	box->setPosition(core::vector3df(812, terrain->getHeight(812, 812) + 0.5f, 812));
+	box->setMaterialFlag(video::EMF_LIGHTING, false); 
+	box->setScale(core::vector3df(5, 5, 5));
+	box->setPosition(core::vector3df(-500, 1000, -500));
 	//box->setScale(core::vector3df(1, 2, 1));
-	// Tank // =================================================================
-	scene::IAnimatedMesh* mesh = smgr->getMesh("./media/daushleli.3DS");
-	scene::IAnimatedMeshSceneNode* tank = smgr->addAnimatedMeshSceneNode(mesh);
-	tank->setPosition(core::vector3df(812, terrain->getHeight(812, 812), 812));
-	tank->setScale(core::vector3df(0.8f, 0.8f, 0.8f));
-	tank->setRotation(core::vector3df(0.0f, 90.0f, 0.0f));
-	tank->setMaterialFlag(video::EMF_LIGHTING, false);
-	tank->setMD2Animation(scene::EMAT_STAND);
-	tank->setMaterialTexture(0, driver->getTexture("./media/textureTest.jpg"));
-	// FPS // ==================================================================
-	//scene::ICameraSceneNode* camera = smgr->addCameraSceneNodeFPS();
-	//camera->setPosition(camPos); camera->setTarget(camTar);
 
+	// light // ================================================================
+	scene::ILightSceneNode* lightSun1 = smgr->addLightSceneNode(0, 
+		core::vector3df(812, terrain->getHeight(812, 812) + 812, 812),
+		video::SColorf(1, 1, 0.94f, 1), 5000.0f);
+
+	// =========================================================================
 	device->getCursorControl()->setVisible(false);
-	
-	// Experiment area // ======================================================
-	//__int8 AB = 2;
-	//int JJ[4] = { 1, 3, 5, 6 };
-	//std::cout << JJ[AB] << std::endl;
 
-	// loop variables // =======================================================
+	// display frames per second // ============================================
+	int fps;
 	int lastFPS = -1;
-	//int fps;
+	gui::IGUIStaticText* guiText = guienv->addStaticText(L"Hello World! This is the Irrlicht Software renderer!",
+		core::rect<s32>(10, 200, 100, 222), true);
 	core::stringw str;
 
+	// Frame rate independence // ==============================================
+	u32 then = device->getTimer()->getTime();
 	u32 now;
 	f32 tempT;
 	f32 deltaTime;
-	//core::vector3df tankRotation = tank->getRotation();
-	// Frame rate independence // ==============================================
-	u32 then = device->getTimer()->getTime();
-	// My camera // ============================================================
+	ITimer* Timer = device->getTimer();
+
+	// Action // ===============================================================
 	Action Act(&receiver, device, terrain, &deltaTime);
-	//gui::IGUIStaticText* guiText = guienv->addStaticText(L"Hello World! This is the Irrlicht Software renderer!",
-	//	core::rect<s32>(10, 200, 100, 222), true);
+	
 	while (device->run())
 	{
 		if (device->isWindowActive())
 		{
 			// Frame rate independence // ==========================================
-			now = device->getTimer()->getTime();
+			now = Timer->getTime();
 			tempT = (f32)(now - then);
 			deltaTime = (f32)(((tempT) < 60) ? tempT : 60);
 			then = now;
 
 			// =====================================================================
 			Act.update();
-			//tankRotation.Y += deltaTime*0.1f;
-			//tank->setRotation(tankRotation);
+
 			// Draw Scene // =======================================================
 			driver->beginScene(true, true, video::SColor(255, 100, 101, 140));
 			smgr->drawAll();
@@ -117,10 +110,22 @@ int main()
 			driver->draw2DImage(irrlichtLogo, core::rect<s32>(1100, 10, 1250, 150), core::rect<s32>(0,
 				0, 128, 128), 0, 0, true);
 
-			Act.drawCursor();
+			// Selection box (must be implemented elsewhere of course
+			/*driver->draw2DRectangle(video::SColor(50, 3, 67, 67), core::rect<s32>(512,
+				512, 680, 680));
+			driver->draw2DLine(core::position2d<s32>(512, 512), core::position2d<s32>(512, 680),
+				video::SColor(255, 11, 208, 194));
+			driver->draw2DLine(core::position2d<s32>(512, 680), core::position2d<s32>(680, 680),
+				video::SColor(255, 11, 208, 194));
+			driver->draw2DLine(core::position2d<s32>(680, 680), core::position2d<s32>(680, 512),
+				video::SColor(255, 11, 208, 194));
+			driver->draw2DLine(core::position2d<s32>(680, 512), core::position2d<s32>(512, 512),
+				video::SColor(255, 11, 208, 194));*/
+
+			Act.DrawCursor();
 			driver->endScene();
 			// Type FPS //==========================================================
-			/*fps = driver->getFPS();
+			fps = driver->getFPS();
 			if (lastFPS != fps)
 			{
 				str = L"[";
@@ -130,7 +135,7 @@ int main()
 
 				guiText->setText(str.c_str());
 				lastFPS = fps;
-			}*/
+			}
 		}
 		else
 			device->yield();

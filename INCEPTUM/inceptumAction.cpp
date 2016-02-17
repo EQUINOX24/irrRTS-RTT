@@ -1,75 +1,9 @@
-#include <irrRTSAction.h>
-#include <iostream>
-#include <cmath>
-#include <windows.h>
-#define LOG(x) std::cout<< x <<std::endl;
+#include <inceptumAction.h>
+#include <vector>
+#include "inceptumUnit.h"
+#include "inceptumEnum.h"
+
 using namespace irr;
-
-// MyEventReceiver //=============================================================
-MyEventReceiver::MyEventReceiver()
-{
-	wheel[1] = false;
-	wheel[2] = false;
-	for (u32 i = 0; i < KEY_KEY_CODES_COUNT; ++i)
-		KeyIsDown[i] = false;
-}
-
-bool MyEventReceiver::OnEvent(const SEvent& event)
-{
-	if (event.EventType == EET_MOUSE_INPUT_EVENT)
-	{
-		if (event.MouseInput.isLeftPressed())
-			MouseDown[1] = true;
-		else
-			MouseDown[1] = false;
-		if (event.MouseInput.isRightPressed())
-			MouseDown[2] = true;
-		else
-			MouseDown[2] = false;
-	}
-
-	if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
-	{
-		wheel[1] = true;
-		wheel[2] = event.MouseInput.Wheel > 0;
-	}
-
-	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
-		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
-
-	return false;
-}
-
-bool MyEventReceiver::IsKeyDown(EKEY_CODE keyCode) const
-{
-	return KeyIsDown[keyCode];
-}
-
-bool MyEventReceiver::isMouseLDown() const
-{
-	return MouseDown[1];
-}
-
-bool MyEventReceiver::isMouseRDown() const
-{
-	return MouseDown[2];
-}
-
-
-bool MyEventReceiver::wheelUp() const
-{
-	return wheel[2];
-}
-
-bool MyEventReceiver::getWheelState() const
-{
-	return wheel[1];
-}
-
-void MyEventReceiver::setWheelState(bool wheel1)
-{
-	wheel[1] = wheel1;
-}
 
 // Action // =====================================================================
 Action::Action(MyEventReceiver* const receiver, IrrlichtDevice* const device,
@@ -80,13 +14,23 @@ Action::Action(MyEventReceiver* const receiver, IrrlichtDevice* const device,
 	this->smgr = device->getSceneManager();
 	this->receiver = receiver;
 	this->deltaTime = deltaTime;
-	// ===========================================================================
 	this->terrain = terrain;
-	this->camHeight = 300;
-	this->tarHeight = 100;
-	this->camSpeed = 0.6f;
+	this->cursor = device->getCursorControl();
+	this->rotationMode = false;
+
+	// set parameters ============================================================
+	this->camHeight = 150;
+	this->tarHeight = 50;
+	this->camSpeed = 0.3f;
 	this->rotSpeed = 1.0f / 550.0f;
 
+	// mouse terrain ray cast ====================================================
+	this->selector = smgr->createTerrainTriangleSelector(terrain);
+	this->terrain->setTriangleSelector(selector);
+	selector->drop();
+	this->collisionManager = smgr->getSceneCollisionManager();
+
+	//============================================================================
 	core::vector3df camPos = core::vector3df(360, 128, 360);
 	core::vector3df camTar = core::vector3df(511, 0, 512);
 	f32 terrainHeightTemp = terrain->getHeight(camPos.X, camPos.Z);
@@ -101,42 +45,78 @@ Action::Action(MyEventReceiver* const receiver, IrrlichtDevice* const device,
 	recipsqrt2 = core::reciprocal_squareroot((f32)2);
 
 	// ==========================================================================
-	this->cursor = driver->getTexture("./media/cursor.png");
-
+	this->cursorImage = driver->getTexture("./media/cursor.png");
+	
 	// ==========================================================================
 	core::dimension2du tempVar = driver->getScreenSize();
 	screenCenter.X = tempVar.Width / 2; screenCenter.Y = tempVar.Height / 2;
 	screenEdges.X = tempVar.Width - 2; screenEdges.Y = tempVar.Height - 2;
+
+	// ==========================================================================
+	UnitClass::setPointers(device, terrain, deltaTime);
+
+	unit.push_back(UnitClass());
+	unit[0].Initialize(core::vector2d<f32>(312, 412), 0, false);
+	unit.push_back(UnitClass());
+	unit[1].Initialize(core::vector2d<f32>(212, 212), 0, true);
 }
 
 void Action::update()
 {
+	YTranslation();
+
+	XZTranslation();
+
+	MouseActions();
+
+	camera->setPosition(camPos);
+	camera->setTarget(camTar1);
+}
+
+void Action::DrawCursor()
+{
+	if (!rotationMode)
+	{
+		cursorPosCurrent = cursor->getPosition();
+		driver->draw2DImage(cursorImage, core::rect<s32>(
+			cursorPosCurrent.X, cursorPosCurrent.Y,
+			cursorPosCurrent.X + 40, cursorPosCurrent.Y + 40),
+			core::rect<s32>(0, 0, 64, 64), 0, 0, true);
+	}
+}
+
+void Action::YTranslation()
+{
 	if (receiver->getWheelState())
 	{
 		receiver->setWheelState(false);
-		if (receiver->wheelUp())
+		if (receiver->isWheelUp())
 		{
-			if (camHeight > 100)
+			if (camHeight > 50)
 			{
-				camHeight -= 40.0f;
-				tarHeight -= 40.0f;
-				camSpeed -= 0.04f;
+				camHeight -= 20.0f;
+				tarHeight -= 20.0f;
+				camSpeed -= 0.02f;
 			}
 		}
 		else
 		{
-			if (camHeight < 300)
+			if (camHeight < 210)
 			{
-				camHeight += 40.0f;
-				tarHeight += 40.0f;
-				camSpeed += 0.04f;
+				camHeight += 20.0f;
+				tarHeight += 20.0f;
+				camSpeed += 0.02f;
 			}
 		}
 	}
+}
+
+void Action::XZTranslation()
+{
 	n = (receiver->IsKeyDown(KEY_KEY_W) << 0) | (receiver->IsKeyDown(KEY_KEY_A) << 1)
 		| receiver->IsKeyDown(KEY_KEY_S) << 2 | receiver->IsKeyDown(KEY_KEY_D) << 3;
-	
-	cursorPosCurrent = device->getCursorControl()->getPosition();
+
+	cursorPosCurrent = cursor->getPosition();
 	if (cursorPosCurrent.Y < 1)
 		n |= 1 << 0;
 	else if (cursorPosCurrent.Y > screenEdges.Y)
@@ -190,7 +170,7 @@ void Action::update()
 		}
 
 		// border collision + apply update
-		if (camPos.X < 200)
+		if (camPos.X < 100)
 		{
 			if (Xup > 0)
 			{
@@ -198,7 +178,7 @@ void Action::update()
 				camTar1.X += Xup;
 			}
 		}
-		else if (camPos.X > 1848)
+		else if (camPos.X > 924)
 		{
 			if (Xup < 0)
 			{
@@ -212,7 +192,7 @@ void Action::update()
 			camTar1.X += Xup;
 		}
 
-		if (camPos.Z < 200)
+		if (camPos.Z < 100)
 		{
 			if (Yup > 0)
 			{
@@ -220,7 +200,7 @@ void Action::update()
 				camTar1.Z += Yup;
 			}
 		}
-		else if (camPos.Z > 1848)
+		else if (camPos.Z > 924)
 		{
 			if (Yup < 0)
 			{
@@ -236,17 +216,26 @@ void Action::update()
 	}
 
 	currentHight = terrain->getHeight(camPos.X, camPos.Z);
-	camPos.Y = 0.8f*camPos.Y + 0.2f*(currentHight + camHeight);
-	camTar1.Y = 0.8f*camTar1.Y + 0.2f*(currentHight + tarHeight);
+	camPos.Y = 0.85f*camPos.Y + 0.15f*(currentHight + camHeight);
+	camTar1.Y = 0.85f*camTar1.Y + 0.15f*(currentHight + tarHeight);
+}
 
-	if (receiver->isMouseRDown() && receiver->isMouseLDown())
+void Action::MouseActions()
+{
+	// ==============================================================
+	MouseDown[1] = receiver->isMouseRDown();
+	MouseDown[2] = receiver->isMouseLDown();
+	if (MouseDown[1] && MouseDown[2])
 	{
+		commandModeOn = false;
+		commandAnticipated = false;
+		selectionAnticipated = false;
 		// get cursor data
 		if (!rotationMode)
 		{
 			rotationMode = true;
-			cursorPosSaved = device->getCursorControl()->getPosition();
-			device->getCursorControl()->setPosition(screenCenter);
+			cursorPosSaved = cursor->getPosition();
+			cursor->setPosition(screenCenter);
 			deltaX = 0;
 			deltaY = 0;
 		}
@@ -256,7 +245,7 @@ void Action::update()
 			deltaY = screenCenter.Y - cursorPosCurrent.Y;
 		}
 		// recet cursor position to center
-		device->getCursorControl()->setPosition(screenCenter);
+		cursor->setPosition(screenCenter);
 
 		// define deltas of cursor data
 		deltaX = (deltaX < 130) ? deltaX : 130; deltaX = (deltaX > -130) ? deltaX : -130;
@@ -278,7 +267,7 @@ void Action::update()
 		direction.normalize();
 
 		// quaternion rotation along polar angle phi =============================
-		
+
 		tempAngle = deltaY*rotSpeed / 2;
 		currentAngle = acos(camTar1.Y / camTar1.getLength());
 
@@ -314,23 +303,113 @@ void Action::update()
 		if (rotationMode)
 		{
 			rotationMode = false;
-			device->getCursorControl()->setPosition(cursorPosSaved);
+			cursor->setPosition(cursorPosSaved);
 		}
-		
+		if (commandModeOn)
+		{
+			if (MouseDown[1] && !MouseDown[2])
+			{
+				commandAnticipated = true;
+				ray = collisionManager->getRayFromScreenCoordinates(cursorPosCurrent);
+			}
+			else if (!MouseDown[1] && MouseDown[2])
+			{
+				selectionAnticipated = true;
+				ray = collisionManager->getRayFromScreenCoordinates(cursorPosCurrent);
+			}
+
+			if (commandAnticipated && !MouseDown[1])
+			{
+				commandAnticipated = false;
+				if (collisionManager->getCollisionPoint(ray, selector, point, triangle, node))
+				{
+					unit[unitIDX].setPosition(point);
+				}
+			}
+			else if (selectionAnticipated && !MouseDown[2])
+			{
+				selectionAnticipated = false;
+				scene::ISceneNode* selectedSceneNode =
+					collisionManager->getSceneNodeAndCollisionPointFromRay(
+					ray,
+					point, // This will be the position of the collision
+					triangle,
+					Pickable);
+				if (selectedSceneNode)
+				{
+					point = selectedSceneNode->getPosition();
+					point.X = point.X + 3;
+					selectedSceneNode->setPosition(point);
+				}
+			}
+		}
 	}
-	
-	camera->setPosition(camPos);
-	camera->setTarget(camTar1);
+	if (!MouseDown[1] && !MouseDown[2])
+		commandModeOn = true;
 }
 
-void Action::drawCursor()
+// MyEventReceiver //=============================================================
+MyEventReceiver::MyEventReceiver()
 {
-	if (!rotationMode)
+	wheel[1] = false;
+	wheel[2] = false;
+	for (u32 i = 0; i < KEY_KEY_CODES_COUNT; ++i)
+		KeyIsDown[i] = false;
+}
+
+bool MyEventReceiver::OnEvent(const SEvent& event)
+{
+	if (event.EventType == EET_MOUSE_INPUT_EVENT)
 	{
-		cursorPosCurrent = device->getCursorControl()->getPosition();
-		driver->draw2DImage(cursor, core::rect<s32>(
-			cursorPosCurrent.X, cursorPosCurrent.Y,
-			cursorPosCurrent.X + 40, cursorPosCurrent.Y + 40),
-			core::rect<s32>(0, 0, 64, 64), 0, 0, true);
+		if (event.MouseInput.isLeftPressed())
+			MouseDown[1] = true;
+		else
+			MouseDown[1] = false;
+		if (event.MouseInput.isRightPressed())
+			MouseDown[2] = true;
+		else
+			MouseDown[2] = false;
 	}
+
+	if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
+	{
+		wheel[1] = true;
+		wheel[2] = event.MouseInput.Wheel > 0;
+	}
+
+	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
+		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
+
+	return false;
+}
+
+bool MyEventReceiver::IsKeyDown(EKEY_CODE keyCode) const
+{
+	return KeyIsDown[keyCode];
+}
+
+bool MyEventReceiver::isMouseLDown() const
+{
+	return MouseDown[1];
+}
+
+bool MyEventReceiver::isMouseRDown() const
+{
+	return MouseDown[2];
+}
+
+
+bool MyEventReceiver::isWheelUp() const
+{
+	return wheel[2];
+}
+
+bool MyEventReceiver::getWheelState() const
+{
+	return wheel[1];
+}
+
+void MyEventReceiver::setWheelState(bool wheel1)
+{
+	wheel[1] = wheel1;
 }
